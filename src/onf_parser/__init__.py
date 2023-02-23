@@ -9,3 +9,20 @@ except DistributionNotFound:
     __version__ = "unknown"
 finally:
     del get_distribution, DistributionNotFound
+
+from onf_parser.parse import parse_file, parse_files, parse_file_string
+from models import (
+    PlainSentence,
+    TreebankedSentence,
+    Tree,
+    Prop,
+    PropArg,
+    Coref,
+    Name,
+    Sense,
+    Leaf,
+    Sentence,
+    Mention,
+    Chain,
+    Section,
+)

@@ -1,5 +1,7 @@
 from glob import glob
 import re
+from typing import Tuple, List
+
 import onf_parser.models as models
 
 LEAF_ID_PATTERN = re.compile(r"^\s\s\s\s(\d+)\s+(\S.*)$")
@@ -17,12 +19,12 @@ def begins_with(chunk, s):
 
 
 def parse_plain_sentence(s):
-    sentence = s.split("\n")[-1].strip()
+    sentence = " ".join(s.strip() for s in s.split("\n")[2:])
     return models.PlainSentence(sentence)
 
 
 def parse_treebanked_sentence(s):
-    sentence = s.split("\n")[-1].strip()
+    sentence = " ".join(s.strip() for s in s.split("\n")[2:])
     return models.TreebankedSentence(sentence, sentence.split(" "))
 
 
@@ -68,7 +70,7 @@ def parse_prop(content_lines):
         i, extra_tokens = parse_extra_attribute_tokens(content_lines, i)
         key, token_id, height, tokens = m.groups()
         tokens = [tokens] + extra_tokens
-        args[key] = [models.PropArg(int(token_id), int(height), " ".join(tokens))]
+        args[key] = [models.PropArg(int(token_id), int(height), tokens)]
         i += 1
 
         m = re.match(NONFIRST_PROP_ARG_PATTERN, content_lines[i]) if i < len(content_lines) else None
@@ -77,7 +79,7 @@ def parse_prop(content_lines):
             i, extra_tokens = parse_extra_attribute_tokens(content_lines, i)
             token_id, height, tokens = m.groups()
             tokens = [tokens] + extra_tokens
-            args[key].append(models.PropArg(int(token_id), int(height), " ".join(tokens)))
+            args[key].append(models.PropArg(int(token_id), int(height), tokens))
 
     return models.Prop(content_lines[0].strip(), args)
 
@@ -86,6 +88,7 @@ def parse_coref(content_lines):
     m = re.match(COREF_PATTERN, content_lines[0].strip())
     i, extra_tokens = parse_extra_attribute_tokens(content_lines, 0)
     coref_type, chain_id, start, end, tokens = m.groups()
+    tokens = tokens.strip()
     tokens = " ".join([tokens] + extra_tokens)
     start = int(start)
     end = int(end)
@@ -96,6 +99,7 @@ def parse_name(content_lines):
     m = re.match(NAME_PATTERN, content_lines[0].strip())
     i, extra_tokens = parse_extra_attribute_tokens(content_lines, 0)
     name_type, start, end, tokens = m.groups()
+    tokens = tokens.strip()
     tokens = " ".join([tokens] + extra_tokens)
     start = int(start)
     end = int(end)
@@ -170,7 +174,7 @@ def parse_mention(s):
     tokens = s[i:].strip().split(" ")
     sentence_id, token_range = indexes.split(".")
     begin, end = token_range.split("-")
-    return models.Mention(int(sentence_id), (int(begin), int(end) + 1), tokens)
+    return models.Mention(int(sentence_id), (int(begin), int(end)), tokens)
 
 
 def parse_chains(s):
@@ -192,7 +196,7 @@ def parse_chains(s):
                 mention_lines.append(chain[i].strip())
             mentions.append(parse_mention(" ".join(mention_lines)))
             i += 1
-        chains.append(models.Chain(id=id, chain_type=type, mentions=mentions))
+        chains.append(models.Chain(id=id, type=type, mentions=mentions))
 
     return chains
 
@@ -267,18 +271,46 @@ def split_sections(s):
     return sections
 
 
-def parse_file_string(s):
+def parse_file_string(s: str) -> List[models.Section]:
+    """
+    Parse a string that is in the OntoNotes Normal Form format.
+
+    Arguments:
+        s - file contents
+
+    Returns:
+        A list of Sections contained within that file.
+    """
     sections = split_sections(s)
     return [parse_section(sec) for sec in sections]
 
 
-def parse_file(filepath):
+def parse_file(filepath: str) -> List[models.Section]:
+    """
+    Parse a single .onf file.
+
+    Arguments:
+        filepath: str - the path to the .onf file
+
+    Returns:
+        A list of Sections contained within that file.
+    """
     with open(filepath, "r") as f:
         return parse_file_string(f.read())
 
 
-def parse_files(directory_path):
+def parse_files(directory_path: str) -> List[Tuple[str, List[models.Section]]]:
+    """
+    Automatically find all .onf files within a directory and parses them.
+
+    Arguments:
+        directory_path: str - the directory under which you wish to recursively search for .onf files
+
+    Returns:
+        A list of 2-tuples: the first item is the filepath, and the second item is the list of Sections
+        contained within that file.
+    """
     parsed = []
     for filepath in sorted(glob(f"{directory_path}/**/*.onf", recursive=True)):
-        parsed.append(parse_file(filepath))
+        parsed.append((filepath, parse_file(filepath)))
     return parsed
