@@ -41,4 +41,4 @@ be available::
                 print(sentence.tree)
                 print(sentence.leaves)
 
-See `model classes <https://github.com/lgessler/onf-parser/src/onf_parser/models.py>`_ for more information.
+See `model classes <https://github.com/lgessler/onf-parser/blob/master/src/onf_parser/models.py>`_ for more information.
