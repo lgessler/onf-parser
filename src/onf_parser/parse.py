@@ -4,7 +4,7 @@ import onf_parser.models as models
 
 LEAF_ID_PATTERN = re.compile(r"^\s\s\s\s(\d+)\s+(\S.*)$")
 
-ATTRIBUTE_PATTERN = re.compile(r"^(?:(?:\*\s)?\s+(\w+): (.*))|(?:\s+!\s+(\w+): (.*))")
+ATTRIBUTE_PATTERN = re.compile(r"^\s*(?:(?:[*!]\s)?\s*(\w+): (.*))|(?:\s+!\s+(\w+): (.*))")
 PROP_ARG_PATTERN = re.compile(r"^(\S+)\s+(?:\* )?-> (\d+):(\d+),\s+(.*)$")
 NONFIRST_PROP_ARG_PATTERN = re.compile(r"^(?:\* )?-> (\d+):(\d+),\s+(.*)")
 
@@ -43,13 +43,14 @@ def parse_tree(s):
     begin = s.find(" " * 4)
     return models.Tree(s[begin + 4 :])
 
+
 def parse_extra_attribute_tokens(content_lines, i):
     extra_tokens = []
     while (
-            i + 1 < len(content_lines)
-            and not re.match(NONFIRST_PROP_ARG_PATTERN, content_lines[i + 1])
-            and not re.match(PROP_ARG_PATTERN, content_lines[i + 1])
-            and not re.match(ATTRIBUTE_PATTERN, content_lines[i + 1])
+        i + 1 < len(content_lines)
+        and not re.match(NONFIRST_PROP_ARG_PATTERN, content_lines[i + 1])
+        and not re.match(PROP_ARG_PATTERN, content_lines[i + 1])
+        and not re.match(ATTRIBUTE_PATTERN, content_lines[i + 1])
     ):
         i += 1
         extra_tokens.append(content_lines[i].strip())
@@ -130,7 +131,6 @@ def parse_attribute(lines, i):
         return name, parse_sense(content_lines), i
     else:
         raise Exception(f"Unrecognized prop: {name}")
-    assert False
 
 
 def parse_leaves(s):
