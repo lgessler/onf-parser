@@ -2,9 +2,18 @@ from glob import glob
 import re
 import onf_parser.models as models
 
+LEAF_ID_PATTERN = re.compile(r"^\s\s\s\s(\d+)\s+(\S.*)$")
+
+ATTRIBUTE_PATTERN = re.compile(r"^(?:(?:\*\s)?\s+(\w+): (.*))|(?:\s+!\s+(\w+): (.*))")
+PROP_ARG_PATTERN = re.compile(r"^(\S+)\s+(?:\* )?-> (\d+):(\d+),\s+(.*)$")
+NONFIRST_PROP_ARG_PATTERN = re.compile(r"^(?:\* )?-> (\d+):(\d+),\s+(.*)")
+
+COREF_PATTERN = re.compile(r"(\w+(?:\s\w+)?)\s+(\S+)\s+(\d+)-(\d+)\s?(.*)$")
+NAME_PATTERN = re.compile(r"(\w+)\s+(\d+)-(\d+)\s?(.*)$")
+
 
 def begins_with(chunk, s):
-    return chunk[:len(s)] == s
+    return chunk[: len(s)] == s
 
 
 def parse_plain_sentence(s):
@@ -32,23 +41,136 @@ def parse_speaker_information(s):
 
 def parse_tree(s):
     begin = s.find(" " * 4)
-    return models.Tree(s[begin + 4:])
+    return models.Tree(s[begin + 4 :])
+
+def parse_extra_attribute_tokens(content_lines, i):
+    extra_tokens = []
+    while (
+            i + 1 < len(content_lines)
+            and not re.match(NONFIRST_PROP_ARG_PATTERN, content_lines[i + 1])
+            and not re.match(PROP_ARG_PATTERN, content_lines[i + 1])
+            and not re.match(ATTRIBUTE_PATTERN, content_lines[i + 1])
+    ):
+        i += 1
+        extra_tokens.append(content_lines[i].strip())
+    return i, extra_tokens
+
+
+def parse_prop(content_lines):
+    i = 1
+    args = {}
+    while i < len(content_lines):
+        m = re.match(PROP_ARG_PATTERN, content_lines[i])
+        if m is None:
+            raise Exception(f"Prop arg line failed to parse: {content_lines[i]}")
+
+        i, extra_tokens = parse_extra_attribute_tokens(content_lines, i)
+        key, token_id, height, tokens = m.groups()
+        tokens = [tokens] + extra_tokens
+        args[key] = [models.PropArg(int(token_id), int(height), " ".join(tokens))]
+        i += 1
+
+        m = re.match(NONFIRST_PROP_ARG_PATTERN, content_lines[i]) if i < len(content_lines) else None
+        while i < len(content_lines) and m is not None:
+            i += 1
+            i, extra_tokens = parse_extra_attribute_tokens(content_lines, i)
+            token_id, height, tokens = m.groups()
+            tokens = [tokens] + extra_tokens
+            args[key].append(models.PropArg(int(token_id), int(height), " ".join(tokens)))
+
+    return models.Prop(content_lines[0].strip(), args)
+
+
+def parse_coref(content_lines):
+    m = re.match(COREF_PATTERN, content_lines[0].strip())
+    i, extra_tokens = parse_extra_attribute_tokens(content_lines, 0)
+    coref_type, chain_id, start, end, tokens = m.groups()
+    tokens = " ".join([tokens] + extra_tokens)
+    start = int(start)
+    end = int(end)
+    return models.Coref(coref_type, chain_id, (start, end), tokens.split(" "))
+
+
+def parse_name(content_lines):
+    m = re.match(NAME_PATTERN, content_lines[0].strip())
+    i, extra_tokens = parse_extra_attribute_tokens(content_lines, 0)
+    name_type, start, end, tokens = m.groups()
+    tokens = " ".join([tokens] + extra_tokens)
+    start = int(start)
+    end = int(end)
+    return models.Name(name_type, (start, end), tokens.split(" "))
+
+
+def parse_sense(content_lines):
+    assert len(content_lines) == 1
+    return models.Sense(content_lines[0].strip())
+
+
+def parse_attribute(lines, i):
+    line = lines[i]
+    m = re.match(ATTRIBUTE_PATTERN, line)
+    if m is None:
+        raise Exception(f"Expected attribute but couldn't find one: {line}")
+    name, content = [x for x in m.groups() if x is not None]
+    content_lines = [content]
+    while (
+        i + 1 < len(lines)
+        and re.match(ATTRIBUTE_PATTERN, lines[i + 1]) is None
+        and re.match(LEAF_ID_PATTERN, lines[i + 1]) is None
+    ):
+        i += 1
+        content_lines.append(lines[i].strip())
+    if name == "prop":
+        return name, parse_prop(content_lines), i
+    elif name == "coref":
+        return name, parse_coref(content_lines), i
+    elif name == "name":
+        return name, parse_name(content_lines), i
+    elif name == "sense":
+        return name, parse_sense(content_lines), i
+    else:
+        raise Exception(f"Unrecognized prop: {name}")
+    assert False
 
 
 def parse_leaves(s):
-    return models.Leaves(raw=s)
+    leaves = []
+
+    lines = [l for l in s.strip().split("\n")[2:]]
+    leaf = None
+    i = 0
+    while i < len(lines):
+        l = lines[i]
+        m = re.match(LEAF_ID_PATTERN, l)
+        is_leaf = m is not None
+        if is_leaf:
+            if leaf is not None:
+                leaves.append(leaf)
+            token_id, token = m.groups()
+            leaf = models.Leaf(int(token_id), token)
+        else:
+            attribute_kind, attribute, i = parse_attribute(lines, i)
+            if attribute_kind == "prop":
+                leaf.prop = attribute
+            elif attribute_kind == "coref":
+                leaf.coref = attribute
+            elif attribute_kind == "name":
+                leaf.name = attribute
+            elif attribute_kind == "sense":
+                leaf.sense = attribute
+        i += 1
+    return leaves
 
 
 def parse_mention(s):
     # Ignore HEAD and ATTRIB at the beginning for (APPOS)
     s = s[15:].strip()
-    print(s)
     i = s.find(" ")
     indexes = s[:i]
     tokens = s[i:].strip().split(" ")
     sentence_id, token_range = indexes.split(".")
     begin, end = token_range.split("-")
-    return models.Mention(int(sentence_id), (int(begin), int(end)), tokens)
+    return models.Mention(int(sentence_id), (int(begin), int(end) + 1), tokens)
 
 
 def parse_chains(s):
@@ -65,7 +187,7 @@ def parse_chains(s):
         i = 1
         while i < len(chain):
             mention_lines = [chain[i]]
-            while i + 1 < len(chain) and chain[i+1][:18] == (" " * 18):
+            while i + 1 < len(chain) and chain[i + 1][:18] == (" " * 18):
                 i += 1
                 mention_lines.append(chain[i].strip())
             mentions.append(parse_mention(" ".join(mention_lines)))
@@ -93,17 +215,11 @@ PARSE_FUNCTIONS = {
 }
 
 
-class UnrecognizedChunkException(Exception):
-    def __init__(self, chunk_string, message="Unrecognized chunk string:"):
-        self.chunk_string = chunk_string
-        super().__init__(message)
-
-
 def recognize_chunk(chunk):
     for ctype, cprefix in CHUNK_PREFIXES.items():
         if begins_with(chunk, cprefix):
             return ctype, chunk
-    raise UnrecognizedChunkException(chunk)
+    raise Exception(f"Unrecognized chunk: {chunk}")
 
 
 def parse_section(s):
@@ -157,12 +273,12 @@ def parse_file_string(s):
 
 
 def parse_file(filepath):
-    with open(filepath, 'r') as f:
+    with open(filepath, "r") as f:
         return parse_file_string(f.read())
 
 
 def parse_files(directory_path):
     parsed = []
-    for filepath in sorted(glob(f'{directory_path}/**/*.onf', recursive=True)):
+    for filepath in sorted(glob(f"{directory_path}/**/*.onf", recursive=True)):
         parsed.append(parse_file(filepath))
     return parsed
