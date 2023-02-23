@@ -7,7 +7,7 @@ Introduction
 
 Installation
 ============
-Note that Python >=3.9 is required due to our dependency on ``dataclasses``::
+Note that Python >=3.7 is required due to our dependency on ``dataclasses``::
 
     pip install onf-parser
 
