@@ -11,7 +11,7 @@ finally:
     del get_distribution, DistributionNotFound
 
 from onf_parser.parse import parse_file, parse_files, parse_file_string
-from models import (
+from onf_parser.models import (
     PlainSentence,
     TreebankedSentence,
     Tree,
