@@ -13,8 +13,9 @@ Note that Python >=3.9 is required due to our dependency on ``dataclasses``::
 
 Usage
 =====
-There are three top-level functions::
+There are three top-level functions:
 
+..  code-block:: python
     from onf_parser import parse_files, parse_file, parse_file_string
     # read a single file
     sections = parse_file('ontonotes/some/file.onf')
@@ -24,8 +25,9 @@ There are three top-level functions::
     files = parse_file('ontonotes/')
 
 For each file, a list of ``Section`` objects (which correspond to documents for the purposes of annotation) will
-be available::
+be available:
 
+..  code-block:: python
     files = parse_files("ontonotes/arabic")
     for filepath, sections in files:
         for section in sections:
