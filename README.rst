@@ -1,15 +1,16 @@
 Introduction
 ============
-
 ``onf-parser`` is a lightweight pure Python library for parsing the OntoNotes Normal Form format
 (``.onf`` -- cf. `section 6.3 <https://catalog.ldc.upenn.edu/docs/LDC2013T19/OntoNotes-Release-5.0.pdf>`_).
 
 
 Installation
 ============
-Note that Python >=3.7 is required due to our dependency on ``dataclasses``::
+Note that Python >=3.7 is required due to our dependency on ``dataclasses``.
 
-    pip install onf-parser
+.. code-block:: bash
+
+   pip install onf-parser
 
 Usage
 =====
