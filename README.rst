@@ -31,7 +31,6 @@ be available:
 
 .. code-block:: python
 
-   files = parse_files("ontonotes/arabic")
    for filepath, sections in files:
        for section in sections:
            coref_chains = section.chains
@@ -39,11 +38,52 @@ be available:
                print(chain.type)
                print(chain.id)
                print(chain.mentions)
+               for mention in chain.mentions:
+                   print(mention.sentence_id)
+                   print(mention.tokens)
            for sentence in section.sentences:
                print(sentence.plain_sentence)
+               print(sentence.plain_sentence.string)
+
                print(sentence.treebanked_sentence)
+               print(sentence.treebanked_sentence.string)
+               print(sentence.treebanked_sentence.tokens)
+
                print(sentence.speaker_information)
+               print(sentence.speaker_information.name)
+               print(sentence.speaker_information.start_time)
+               print(sentence.speaker_information.stop_time)
+
                print(sentence.tree)
+               print(sentence.tree.tree_string)
+
                print(sentence.leaves)
+               for leaf in sentence.leaves:
+                   print(leaf.token)
+                   print(leaf.token_id)
+
+                   # NER
+                   print(leaf.name)
+                   print(leaf.name.type)
+                   print(leaf.name.token_id_range)
+                   print(leaf.name.tokens)
+
+                   # Coreference
+                   print(leaf.coref)
+                   print(leaf.coref.type)
+                   print(leaf.coref.token_id_range)
+                   print(leaf.coref.tokens)
+
+                   # WordNet sense
+                   print(leaf.sense)
+                   print(leaf.sense.label)
+
+                   # PropBank
+                   print(leaf.prop.label)
+                   print(leaf.prop)
+                   for arg_label, arg_spans in leaf.prop.args.items():
+                       print(arg_label)
+                       for arg_span in arg_spans:
+                           print(arg_span)
 
 See `model classes <https://github.com/lgessler/onf-parser/blob/master/src/onf_parser/models.py>`_ for more information.
