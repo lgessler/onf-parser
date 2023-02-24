@@ -62,7 +62,7 @@ class Tree:
 @dataclass
 class PropArg:
     """
-    Represents a single argument for a PropBank annotation.
+    Represents a single argument for a PropBank frame annotation.
 
     Attributes:
         token_id: int - 0-indexed offset of the head token of this argument
@@ -79,7 +79,7 @@ class PropArg:
 @dataclass
 class Prop:
     """
-    A representation of a PropBank annotation for a given token. Used by Leaf.
+    A representation of a PropBank frame annotation for a given token. Used by Leaf.
 
     Attributes:
         label: str - the PropBank label for this annotation
