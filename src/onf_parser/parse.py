@@ -248,6 +248,8 @@ def parse_section(s):
         else:
             parsed = PARSE_FUNCTIONS[ctype](chunk)
             parts[ctype.lower()] = parsed
+    if len(parts) > 0:
+        sentences.append(models.Sentence(**parts))
 
     chains = parse_chains(tail) if tail is not None else None
     return models.Section(sentences, chains)
