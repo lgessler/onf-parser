@@ -2,6 +2,10 @@
 Changelog
 =========
 
+Version 0.2.0
+=============
+- Add tree parsing with NLTK
+
 Version 0.1.0
 =============
 - Bugfix: last sentence in a section was being dropped.

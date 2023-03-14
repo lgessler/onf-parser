@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import List, Optional, Tuple, Dict
 
+from nltk import Tree
+
 
 @dataclass
 class PlainSentence:
@@ -50,13 +52,23 @@ class SpeakerInformation:
 @dataclass
 class Tree:
     """
-    The raw Penn Treebank S-expression which represents the tree for a sentence.
+    The Penn Treebank tree for a sentence.
 
     Attributes:
         tree_string: str - S-expression formatted PTB tree.
+        parsed_tree: Tree - nltk.tree.Tree instance
     """
 
     tree_string: str
+
+    @property
+    def parsed_tree(self) -> Tree:
+        if hasattr(self, "__parsed_tree"):
+            return self.__parsed_tree
+        else:
+            t = Tree.fromstring(self.tree_string)
+            self.__parsed_tree = t
+            return t
 
 
 @dataclass
