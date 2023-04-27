@@ -2,6 +2,10 @@
 Changelog
 =========
 
+Version 0.2.1
+=============
+- Bugfix for tree parsing
+
 Version 0.2.0
 =============
 - Add tree parsing with NLTK
