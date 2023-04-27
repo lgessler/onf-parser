@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import List, Optional, Tuple, Dict
 
-from nltk import Tree
+from nltk.tree import Tree as NltkTree
 
 
 @dataclass
@@ -62,11 +62,11 @@ class Tree:
     tree_string: str
 
     @property
-    def parsed_tree(self) -> Tree:
+    def parsed_tree(self) -> NltkTree:
         if hasattr(self, "__parsed_tree"):
             return self.__parsed_tree
         else:
-            t = Tree.fromstring(self.tree_string)
+            t = NltkTree.fromstring(self.tree_string)
             self.__parsed_tree = t
             return t
 
