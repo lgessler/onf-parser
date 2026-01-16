@@ -297,7 +297,7 @@ def parse_file(filepath: str) -> List[models.Section]:
     Returns:
         A list of Sections contained within that file.
     """
-    with open(filepath, "r") as f:
+    with open(filepath, "r", encoding="utf8") as f:
         return parse_file_string(f.read())
 
 
